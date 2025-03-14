@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Подтянись и победи</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .game-container {
+            max-width: 500px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .video-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        .pull-up-video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .button {
+            background: linear-gradient(to bottom, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .button:hover {
+            background: linear-gradient(to bottom, #45a049, #409345);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
+        }
+        .button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .score-display {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        .time-display {
+            font-size: 20px;
+            margin: 10px 0;
+        }
+        .leaderboard {
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .leaderboard h3 {
+            margin-top: 0;
+        }
+        .leaderboard-list {
+            list-style-type: none;
+            padding: 0;
+            text-align: left;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .game-over {
+            font-size: 28px;
+            color: #d9534f;
+            margin-bottom: 10px;
+            display: none;
+        }
+        .hidden {
+            display: none;
+        }
+        .instructions {
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Подтянись и победи!</h1>
+        
+        <div class="instructions">
+            <p>Нажимайте на кнопку или клавишу пробел, чтобы подтянуться. Наберите максимальное количество повторений за 30 секунд!</p>
+        </div>
+
+        <div class="video-container">
+            <video class="pull-up-video" id="pullUpVideo" muted>
+                <source src="Comp 1.webm" type="video/webm">
+                Ваш браузер не поддерживает видео.
+            </video>
+        </div>
+
+        <div class="time-display">Время: <span id="time">30</span>с</div>
+        <div class="score-display">Счет: <span id="score">0</span></div>
+        <div class="game-over" id="gameOver">Время вышло!</div>
+        
+        <button class="button" id="startButton">Начать</button>
+        <button class="button hidden" id="pullUpButton">Подтянуться!</button>
+        <button class="button hidden" id="restartButton">Играть снова</button>
+        
+        <div class="leaderboard">
+            <h3>Таблица рекордов</h3>
+            <ul class="leaderboard-list" id="leaderboard">
+                <li class="leaderboard-item"><span>Мурат</span><span>50</span></li>
+                <li class="leaderboard-item"><span>Hannibal For King</span><span>30</span></li>
+                <li class="leaderboard-item"><span>Коровка</span><span>20</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('pullUpVideo');
+    const startButton = document.getElementById('startButton');
+    const pullUpButton = document.getElementById('pullUpButton');
+    const restartButton = document.getElementById('restartButton');
+    const scoreDisplay = document.getElementById('score');
+    const timeDisplay = document.getElementById('time');
+    const gameOverDisplay = document.getElementById('gameOver');
+    const leaderboard = document.getElementById('leaderboard');
+    
+    let score = 0;
+    let timeLeft = 30;
+    let gameActive = false;
+    let timer;
+    let animationInProgress = false;
+    
+    // Предварительная загрузка видео для более плавного старта
+    video.load();
+    
+    function resetGame() {
+        score = 0;
+        timeLeft = 30;
+        gameActive = false;
+        animationInProgress = false;
+        scoreDisplay.textContent = score;
+        timeDisplay.textContent = timeLeft;
+        video.pause();
+        video.currentTime = 0;
+        gameOverDisplay.style.display = 'none';
+        startButton.classList.remove('hidden');
+        pullUpButton.classList.add('hidden');
+        restartButton.classList.add('hidden');
+        clearInterval(timer);
+    }
+    
+    function startGame() {
+        gameActive = true;
+        startButton.classList.add('hidden');
+        pullUpButton.classList.remove('hidden');
+        
+        timer = setInterval(function() {
+            timeLeft--;
+            timeDisplay.textContent = timeLeft;
+            
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+    
+    function endGame() {
+        gameActive = false;
+        clearInterval(timer);
+        gameOverDisplay.style.display = 'block';
+        pullUpButton.classList.add('hidden');
+        restartButton.classList.remove('hidden');
+        
+        // Update leaderboard
+        updateLeaderboard(score);
+    }
+    
+    function performPullUp() {
+        // Проверяем, активна ли кнопка "Подтянуться!"
+        if (!pullUpButton.disabled && gameActive && !animationInProgress) {
+            // Set animation lock
+            animationInProgress = true;
+            
+            // Play video animation
+            video.currentTime = 0;
+            video.play();
+            
+            // Increase score
+            score++;
+            scoreDisplay.textContent = score;
+            
+            // Reset after video completes
+            video.onended = function() {
+                animationInProgress = false;
+            };
+            
+            // Fallback in case video doesn't trigger onended event
+            setTimeout(function() {
+                if (animationInProgress) {
+                    animationInProgress = false;
+                }
+            }, video.duration * 1000 || 1000); // Если длительность не определена, используем 1 секунду
+            
+            // Защита от повторного нажатия на 2000 миллисекунд
+            pullUpButton.disabled = true;
+            setTimeout(function() {
+                pullUpButton.disabled = false;
+            }, 1000);
+        }
+    }
+    
+    function updateLeaderboard(newScore) {
+        // Get current scores from leaderboard
+        const scores = [];
+        document.querySelectorAll('.leaderboard-item').forEach(item => {
+            const scoreValue = parseInt(item.querySelector('span:last-child').textContent);
+            scores.push(scoreValue);
+        });
+        
+        // Add new score and sort
+        scores.push(newScore);
+        scores.sort((a, b) => b - a);
+        
+        // Keep only top 3
+        scores.splice(3);
+        
+        // Update leaderboard
+        leaderboard.innerHTML = '';
+        const titles = ['Чемпион', 'Атлет', 'Новичок'];
+        
+        scores.forEach((score, index) => {
+            const li = document.createElement('li');
+            li.className = 'leaderboard-item';
+            li.innerHTML = `<span>${titles[index]}</span><span>${score}</span>`;
+            leaderboard.appendChild(li);
+        });
+    }
+    
+    // Обработчик события загрузки метаданных видео
+    video.addEventListener('loadedmetadata', function() {
+        console.log("Видео загружено, длительность: " + video.duration + " секунд");
+    });
+    
+    // Event listeners
+    startButton.addEventListener('click', startGame);
+    pullUpButton.addEventListener('click', performPullUp);
+    restartButton.addEventListener('click', resetGame);
+    
+    // Add spacebar support
+    document.addEventListener('keydown', function(event) {
+        if (event.code === 'Space') {
+            if (!gameActive && startButton.classList.contains('hidden') && restartButton.classList.contains('hidden')) {
+                startGame();
+            } else if (gameActive) {
+                performPullUp();
+            } else if (!gameActive && !startButton.classList.contains('hidden')) {
+                startGame();
+            } else if (!gameActive && !restartButton.classList.contains('hidden')) {
+                resetGame();
+            }
+            
+            // Prevent page scrolling on spacebar
+            event.preventDefault();
+        }
+    });
+    
+    // Initialize game
+    resetGame();
+});
+    
+    </script>
+</body>
+</html>
